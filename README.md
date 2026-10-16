@@ -148,25 +148,41 @@ the API.
 
 Cadastre runs a remote MCP server at `https://getcadastre.com/mcp`. The
 assistant signs in through your browser on first use (OAuth); no API key is
-written anywhere.
+written anywhere. Like the API, it needs an account with API access enabled
+(see [Exit codes](#exit-codes): `api_access_required`).
 
 ```sh
 cadastre mcp                     # the server URL and the clients
-cadastre mcp add claude-code     # prints the command and the config
+cadastre mcp add claude-code     # prints the command and the config file alternative
 cadastre mcp add cursor --write  # edits the config file for you
 ```
 
-| Client | Printed command | `--write` edits |
+| Client | Printed command | Config file (`--write` edits it) |
 | --- | --- | --- |
-| `claude-code` | `claude mcp add --transport http --scope user cadastre https://getcadastre.com/mcp` | `./.mcp.json` (this project) |
-| `codex` | `codex mcp add cadastre --url https://getcadastre.com/mcp`, then `codex mcp login cadastre` | `$CODEX_HOME/config.toml` (`~/.codex/config.toml`) |
-| `cursor` | (none) | `~/.cursor/mcp.json` |
-| `vscode` | `code --add-mcp '{"name":"cadastre","type":"http","url":"https://getcadastre.com/mcp"}'` | `./.vscode/mcp.json` (this workspace) |
+| `claude-code` | `claude mcp add --transport http --scope user cadastre https://getcadastre.com/mcp`, then `/mcp` in Claude Code to sign in | `./.mcp.json` (this project): `{"mcpServers":{"cadastre":{"type":"http","url":"..."}}}` |
+| `codex` | `codex mcp add cadastre --url https://getcadastre.com/mcp`, then `codex mcp login cadastre` | `$CODEX_HOME/config.toml` (`~/.codex/config.toml`): `[mcp_servers.cadastre]` `url = "..."` |
+| `cursor` | (none) | `~/.cursor/mcp.json`: `{"mcpServers":{"cadastre":{"url":"..."}}}` |
+| `vscode` | `code --add-mcp '{"name":"cadastre","type":"http","url":"https://getcadastre.com/mcp"}'` (your user profile) | `./.mcp.json` (this workspace): the same file and entry as Claude Code's |
+
+`cadastre mcp add <client>` prints both: the command (where the client has
+one) and the config file alternative, then the sign-in step.
+
+VS Code reads MCP servers from `.mcp.json` at the workspace root, with the
+servers in a top-level `mcpServers` object and a remote server spelled
+`{"type": "http", "url": "..."}`; `.vscode/mcp.json` (top-level `servers`) is
+deprecated for new servers
+([VS Code docs: MCP servers](https://code.visualstudio.com/docs/agent-customization/mcp-servers#_configure-the-mcpjson-file),
+updated 2026-10-14). That is the shape Claude Code reads from a project's
+`.mcp.json`, so both clients share one `cadastre` entry: `--write` for the
+second client finds it and changes nothing. The docs call the setting that
+offers `.mcp.json` in VS Code's "Add Server" flow
+(`chat.mcp.workspaceRootConfig.enabled`) experimental.
 
 Nothing is written without `--write`. With it, the existing file is copied to
 `<file>.bak-<unix time>` first, only a `cadastre` entry is added, and a file
 that already has a different `cadastre` entry, or is not plain JSON (comments),
-is left alone with a message. `--base-url` changes the server URL
+is left alone with a message; every other key (other servers, a legacy
+`servers` object, `inputs`) is kept. `--base-url` changes the server URL
 (`<base>/mcp`).
 
 ## Configuration
@@ -212,6 +228,7 @@ server it signed in to.
 | 3 | Not signed in, or the sign-in no longer works: run `cadastre login` |
 | 4 | The account must accept Cadastre's current Terms: sign in at the site and accept them |
 | 5 | Rate limited: the message gives the `Retry-After` seconds |
+| 6 | The account does not have API access enabled (HTTP 403, `api_access_required`): ask support@getcadastre.com to enable it |
 
 With `--json`, errors are printed to stderr as `{"error": "<code>", "message": "..."}`,
 `error` being the API's own code (`not_found`, `invalid_request`, ...) when the
@@ -264,8 +281,9 @@ are about 1.2 to 1.7 MB.
 `zig build test` runs the unit tests: argument parsing, the Requirement flag
 mapping and request bodies, PKCE (the RFC 7636 test vector), URL and form
 encoding, the authorization URL and redirect checks, decoding and rendering of
-every recorded API answer (attribution included), credential encoding, and the
-MCP config merges. They make no network calls.
+every recorded API answer (attribution included), the API error to exit code
+mapping, credential encoding, and the MCP instructions and config merges
+(including Claude Code and VS Code sharing one `.mcp.json`). They make no network calls.
 
 `scripts/e2e.sh` drives the built CLI against a **local** Cadastre server (it
 refuses to run against getcadastre.com): API-key login, every data command in

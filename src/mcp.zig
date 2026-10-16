@@ -54,20 +54,44 @@ pub fn serverUrl(gpa: Allocator, base_url: []const u8) Allocator.Error![]const u
     return std.fmt.allocPrint(gpa, "{s}/mcp", .{base_url});
 }
 
-/// The one-line command that registers the server with the client's own CLI.
-pub fn command(gpa: Allocator, client: Client, mcp_url: []const u8) Allocator.Error![]const u8 {
+/// The one-line command that registers the server with the client's own CLI
+/// (null for Cursor, which has none).
+pub fn command(gpa: Allocator, client: Client, mcp_url: []const u8) Allocator.Error!?[]const u8 {
     return switch (client) {
-        .claude_code => std.fmt.allocPrint(gpa, "claude mcp add --transport http --scope user {s} {s}", .{ server_name, mcp_url }),
-        .codex => std.fmt.allocPrint(gpa, "codex mcp add {s} --url {s}", .{ server_name, mcp_url }),
-        .cursor => std.fmt.allocPrint(gpa, "(Cursor has no CLI for this: add the JSON below to ~/.cursor/mcp.json, or run with --write)", .{}),
-        .vscode => std.fmt.allocPrint(gpa, "code --add-mcp '{{\"name\":\"{s}\",\"type\":\"http\",\"url\":\"{s}\"}}'", .{ server_name, mcp_url }),
+        .claude_code => try std.fmt.allocPrint(gpa, "claude mcp add --transport http --scope user {s} {s}", .{ server_name, mcp_url }),
+        .codex => try std.fmt.allocPrint(gpa, "codex mcp add {s} --url {s}", .{ server_name, mcp_url }),
+        .cursor => null,
+        .vscode => try std.fmt.allocPrint(gpa, "code --add-mcp '{{\"name\":\"{s}\",\"type\":\"http\",\"url\":\"{s}\"}}'", .{ server_name, mcp_url }),
     };
 }
+
+/// Where the client's command registers the server.
+pub fn commandScope(client: Client) []const u8 {
+    return switch (client) {
+        .claude_code => "for your user",
+        .codex => "in ~/.codex/config.toml",
+        .cursor => "",
+        .vscode => "in your VS Code user profile",
+    };
+}
+
+/// What to do after adding the server (by command or by file).
+pub fn nextStep(client: Client) []const u8 {
+    return switch (client) {
+        .claude_code => "start `claude`, approve the cadastre server if asked, then run /mcp and sign in",
+        .codex => "codex mcp login " ++ server_name,
+        .cursor, .vscode => "reload the editor; it signs in through your browser the first time it uses Cadastre",
+    };
+}
+
+/// The MCP server, like the API, needs an account with API access enabled.
+pub const api_access_note = "Your Cadastre account needs API access. If the assistant reports\n" ++
+    "`api_access_required` (HTTP 403), ask support@getcadastre.com to enable it.\n";
 
 /// Where --write puts the entry.
 pub const Target = struct {
     path: []const u8,
-    /// JSON: the object holding the servers ("mcpServers" or "servers").
+    /// JSON: the object holding the servers ("mcpServers").
     /// TOML (Codex): null.
     container: ?[]const u8,
     scope: []const u8,
@@ -87,7 +111,10 @@ pub fn target(app: *App, client: Client) App.Error!Target {
             .scope = "your user (Codex config.toml)",
         },
         .cursor => .{ .path = std.fs.path.join(gpa, &.{ home, ".cursor", "mcp.json" }) catch return oom(app), .container = "mcpServers", .scope = "your user (~/.cursor/mcp.json)" },
-        .vscode => .{ .path = std.fs.path.join(gpa, &.{ ".vscode", "mcp.json" }) catch return oom(app), .container = "servers", .scope = "this workspace (.vscode/mcp.json)" },
+        // Workspace scope: .mcp.json at the workspace root, the portable file
+        // VS Code now prefers (.vscode/mcp.json is deprecated). It has the
+        // same shape as Claude Code's, so both read one entry.
+        .vscode => .{ .path = ".mcp.json", .container = "mcpServers", .scope = "this workspace (.mcp.json)" },
     };
 }
 
@@ -114,7 +141,7 @@ pub fn snippet(gpa: Allocator, client: Client, mcp_url: []const u8) Allocator.Er
     var servers: std.json.ObjectMap = .empty;
     try servers.put(gpa, server_name, try entry(gpa, client, mcp_url));
     var root: std.json.ObjectMap = .empty;
-    try root.put(gpa, if (client == .vscode) "servers" else "mcpServers", .{ .object = servers });
+    try root.put(gpa, "mcpServers", .{ .object = servers });
     return std.json.Stringify.valueAlloc(gpa, Value{ .object = root }, .{ .whitespace = .indent_2 });
 }
 
@@ -189,6 +216,7 @@ pub fn run(app: *App, rest: []const []const u8) App.Error!void {
         out(app, app.out.print("Cadastre's MCP server: {s}\n\nConnect an assistant:\n", .{mcp_url}));
         for (std.enums.values(Client)) |c| out(app, app.out.print("  cadastre mcp add {s: <12} {s}\n", .{ c.name(), c.title() }));
         out(app, app.out.writeAll("\nThe assistant signs in through your browser the first time it uses Cadastre.\n"));
+        out(app, app.out.writeAll(api_access_note));
         return;
     }
     if (!std.mem.eql(u8, sub, "add")) return app.fail(.usage, "unknown `cadastre mcp` command \"{s}\" (use `cadastre mcp add <client>`)", .{sub});
@@ -201,16 +229,37 @@ pub fn run(app: *App, rest: []const []const u8) App.Error!void {
 
     if (!o.has("write")) {
         if (app.json) {
-            out(app, std.json.Stringify.value(.{ .client = client.name(), .url = mcp_url, .command = cmd, .config_file = where.path, .config = snip }, .{}, app.out));
+            out(app, std.json.Stringify.value(.{ .client = client.name(), .url = mcp_url, .command = cmd, .config_file = where.path, .config = snip, .next_step = nextStep(client) }, .{}, app.out));
             out(app, app.out.writeByte('\n'));
             return;
         }
-        out(app, app.out.print("{s}: add Cadastre's MCP server ({s})\n\nRun:\n\n  {s}\n\nor put this in {s}:\n\n{s}\n", .{ client.title(), mcp_url, cmd, where.path, snip }));
-        if (client == .codex) out(app, app.out.print("\nThen sign in: codex mcp login {s}\n", .{server_name}));
-        out(app, app.out.print("\n`cadastre mcp add {s} --write` edits {s} for you (with a backup).\nThe assistant signs in through your browser the first time it uses Cadastre.\n", .{ client.name(), where.path }));
+        out(app, app.out.writeAll(instructions(app.gpa, client, mcp_url, where.path) catch return oom(app)));
         return;
     }
     return write(app, client, where, mcp_url);
+}
+
+/// The human-readable `cadastre mcp add <client>`: the command (where the
+/// client has one), then the config file alternative.
+pub fn instructions(gpa: Allocator, client: Client, mcp_url: []const u8, config_path: []const u8) Allocator.Error![]const u8 {
+    var w: Io.Writer.Allocating = .init(gpa);
+    writeInstructions(gpa, &w.writer, client, mcp_url, config_path) catch return error.OutOfMemory;
+    return w.toOwnedSlice();
+}
+
+fn writeInstructions(gpa: Allocator, o: *Io.Writer, client: Client, mcp_url: []const u8, config_path: []const u8) (Io.Writer.Error || Allocator.Error)!void {
+    const snip = try snippet(gpa, client, mcp_url);
+    try o.print("{s}: add Cadastre's MCP server ({s})\n\n", .{ client.title(), mcp_url });
+    if (try command(gpa, client, mcp_url)) |cmd| {
+        try o.print("Run (adds it {s}):\n\n  {s}\n\nOr put this in {s}:\n\n{s}\n", .{ commandScope(client), cmd, config_path, snip });
+    } else {
+        try o.print("{s} has no command for this. Put this in {s}:\n\n{s}\n", .{ client.title(), config_path, snip });
+    }
+    if (client == .vscode or client == .claude_code)
+        try o.writeAll("\nClaude Code and VS Code both read this .mcp.json (at the project root).\n");
+    try o.print("\nThen: {s}\n", .{nextStep(client)});
+    try o.print("\n`cadastre mcp add {s} --write` edits {s} for you (with a backup).\n\n", .{ client.name(), config_path });
+    try o.writeAll(api_access_note);
 }
 
 fn out(app: *App, result: anytype) void {
@@ -249,11 +298,8 @@ fn write(app: *App, client: Client, where: Target, mcp_url: []const u8) App.Erro
                 return app.fail(.failure, "could not write {s}: {s}", .{ where.path, @errorName(err) });
             out(app, app.out.print("Added Cadastre's MCP server ({s}) for {s}: {s}.\n", .{ mcp_url, where.scope, where.path }));
             if (backup) |b| out(app, app.out.print("Backup of the previous file: {s}\n", .{b}));
-            switch (client) {
-                .codex => out(app, app.out.print("Next: codex mcp login {s}\n", .{server_name})),
-                .claude_code => out(app, app.out.writeAll("Next: start `claude` here and approve the cadastre server, then run /mcp to sign in.\n")),
-                else => out(app, app.out.writeAll("Next: reload the editor; it signs in through your browser on first use.\n")),
-            }
+            out(app, app.out.print("Next: {s}\n", .{nextStep(client)}));
+            out(app, app.out.writeAll(api_access_note));
         },
     }
 }
@@ -272,9 +318,34 @@ test "the printed commands" {
     defer arena.deinit();
     const gpa = arena.allocator();
     const u = "https://getcadastre.com/mcp";
-    try testing.expectEqualStrings("claude mcp add --transport http --scope user cadastre https://getcadastre.com/mcp", try command(gpa, .claude_code, u));
-    try testing.expectEqualStrings("codex mcp add cadastre --url https://getcadastre.com/mcp", try command(gpa, .codex, u));
-    try testing.expectEqualStrings("code --add-mcp '{\"name\":\"cadastre\",\"type\":\"http\",\"url\":\"https://getcadastre.com/mcp\"}'", try command(gpa, .vscode, u));
+    try testing.expectEqualStrings("claude mcp add --transport http --scope user cadastre https://getcadastre.com/mcp", (try command(gpa, .claude_code, u)).?);
+    try testing.expectEqualStrings("codex mcp add cadastre --url https://getcadastre.com/mcp", (try command(gpa, .codex, u)).?);
+    try testing.expectEqualStrings("code --add-mcp '{\"name\":\"cadastre\",\"type\":\"http\",\"url\":\"https://getcadastre.com/mcp\"}'", (try command(gpa, .vscode, u)).?);
+    try testing.expect((try command(gpa, .cursor, u)) == null);
+}
+
+test "the printed instructions show the command and the config file, and the API access note" {
+    var arena: std.heap.ArenaAllocator = .init(testing.allocator);
+    defer arena.deinit();
+    const gpa = arena.allocator();
+    const u = "https://getcadastre.com/mcp";
+    const cases = [_]struct { Client, []const u8, []const []const u8 }{
+        .{ .claude_code, ".mcp.json", &.{ "claude mcp add --transport http --scope user cadastre https://getcadastre.com/mcp", "Or put this in .mcp.json", "\"mcpServers\"", "/mcp" } },
+        .{ .codex, "/h/.codex/config.toml", &.{ "codex mcp add cadastre --url https://getcadastre.com/mcp", "Then: codex mcp login cadastre", "[mcp_servers.cadastre]" } },
+        .{ .vscode, ".mcp.json", &.{ "code --add-mcp '{\"name\":\"cadastre\",\"type\":\"http\",\"url\":\"https://getcadastre.com/mcp\"}'", "Or put this in .mcp.json", "\"mcpServers\"", "\"type\": \"http\"" } },
+        .{ .cursor, "/h/.cursor/mcp.json", &.{ "has no command", "Put this in /h/.cursor/mcp.json", "\"mcpServers\"" } },
+    };
+    for (cases) |case| {
+        const text = try instructions(gpa, case[0], u, case[1]);
+        for (case[2]) |needle| {
+            if (std.mem.indexOf(u8, text, needle) == null) {
+                std.debug.print("missing \"{s}\" in:\n{s}\n", .{ needle, text });
+                return error.TestExpectedOutput;
+            }
+        }
+        try testing.expect(std.mem.indexOf(u8, text, "api_access_required") != null);
+        try testing.expect(std.mem.indexOf(u8, text, "support@getcadastre.com") != null);
+    }
 }
 
 test "snippets per client" {
@@ -292,16 +363,8 @@ test "snippets per client" {
         \\  }
         \\}
     , try snippet(gpa, .claude_code, u));
-    try testing.expectEqualStrings(
-        \\{
-        \\  "servers": {
-        \\    "cadastre": {
-        \\      "type": "http",
-        \\      "url": "https://getcadastre.com/mcp"
-        \\    }
-        \\  }
-        \\}
-    , try snippet(gpa, .vscode, u));
+    // VS Code's workspace .mcp.json: the same shape as Claude Code's.
+    try testing.expectEqualStrings(try snippet(gpa, .claude_code, u), try snippet(gpa, .vscode, u));
     try testing.expectEqualStrings("[mcp_servers.cadastre]\nurl = \"https://getcadastre.com/mcp\"\n", try snippet(gpa, .codex, u));
 }
 
@@ -324,8 +387,45 @@ test "merging into a JSON config keeps the other servers" {
     try testing.expect(try mergeJson(gpa, r.updated, "mcpServers", .cursor, "http://127.0.0.1:3000/mcp") == .conflict);
     try testing.expect(try mergeJson(gpa, "// comment\n{}", "mcpServers", .cursor, u) == .invalid);
     try testing.expect(try mergeJson(gpa, "[]", "mcpServers", .cursor, u) == .invalid);
-    const fresh = try mergeJson(gpa, null, "servers", .vscode, u);
-    try testing.expect(std.mem.indexOf(u8, fresh.updated, "\"servers\"") != null);
+    const fresh = try mergeJson(gpa, null, "mcpServers", .vscode, u);
+    try testing.expect(std.mem.indexOf(u8, fresh.updated, "\"mcpServers\"") != null);
+}
+
+test "Claude Code and VS Code share one .mcp.json without clobbering each other" {
+    var arena: std.heap.ArenaAllocator = .init(testing.allocator);
+    defer arena.deinit();
+    const gpa = arena.allocator();
+    const u = "https://getcadastre.com/mcp";
+    var env: std.process.Environ.Map = .init(gpa);
+    try env.put("HOME", "/h");
+    var sink: Io.Writer.Allocating = .init(gpa);
+    var app: App = .{ .gpa = gpa, .io = testing.io, .env = &env, .out = &sink.writer, .err = &sink.writer, .color = false, .err_color = false, .json = false, .base_url = App.default_base_url };
+    // Both clients write the same file under the same key.
+    for ([_]Client{ .claude_code, .vscode }) |c| {
+        const t = try target(&app, c);
+        try testing.expectEqualStrings(".mcp.json", t.path);
+        try testing.expectEqualStrings("mcpServers", t.container.?);
+    }
+
+    // Claude Code first, then VS Code: VS Code finds the entry it would add.
+    const after_claude = (try mergeJson(gpa, null, "mcpServers", .claude_code, u)).updated;
+    try testing.expect(try mergeJson(gpa, after_claude, "mcpServers", .vscode, u) == .already);
+
+    // A project .mcp.json holding other servers and a legacy "servers" object
+    // (VS Code's old key): everything is kept, cadastre is added once.
+    const existing =
+        \\{"mcpServers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp"}},"servers":{"legacy":{"command":"npx"}},"inputs":[]}
+    ;
+    const merged_text = (try mergeJson(gpa, existing, "mcpServers", .vscode, u)).updated;
+    const merged = try std.json.parseFromSliceLeaky(Value, gpa, merged_text, .{});
+    const servers = merged.object.get("mcpServers").?.object;
+    try testing.expect(servers.get("github") != null);
+    const cadastre = servers.get("cadastre").?.object;
+    try testing.expectEqualStrings("http", cadastre.get("type").?.string);
+    try testing.expectEqualStrings(u, cadastre.get("url").?.string);
+    try testing.expect(merged.object.get("servers").?.object.get("legacy") != null);
+    try testing.expect(merged.object.get("inputs") != null);
+    try testing.expect(try mergeJson(gpa, merged_text, "mcpServers", .claude_code, u) == .already);
 }
 
 test "merging into Codex's TOML appends one table" {

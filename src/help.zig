@@ -188,16 +188,18 @@ const topics = [_]Topic{
     \\       cadastre mcp add <claude-code|codex|cursor|vscode> [--write]
     \\
     \\Connects an AI assistant to Cadastre's remote MCP server (<site>/mcp).
-    \\Prints the command to run and the config to add; with --write, edits the
-    \\client's config file (backed up first):
+    \\Prints the client's command (Cursor has none) and the config file
+    \\alternative; with --write, edits the config file (backed up first):
     \\
     \\  claude-code  ./.mcp.json (this project)
     \\  codex        $CODEX_HOME/config.toml (~/.codex/config.toml)
     \\  cursor       ~/.cursor/mcp.json
-    \\  vscode       ./.vscode/mcp.json (this workspace)
+    \\  vscode       ./.mcp.json (this workspace; the same file and entry
+    \\               as Claude Code's)
     \\
     \\The assistant signs in through your browser on first use; no key is
-    \\written to any file.
+    \\written to any file. The account needs API access: a 403
+    \\`api_access_required` means ask support@getcadastre.com to enable it.
     \\
     },
     .{ .name = "docs", .text =

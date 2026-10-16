@@ -39,6 +39,8 @@ pub const ExitCode = enum(u8) {
     terms = 4,
     /// Over a rate limit: try again after Retry-After.
     rate_limited = 5,
+    /// The account does not have API access enabled: ask support.
+    api_access = 6,
 };
 
 pub const Error = error{Reported};
@@ -55,6 +57,7 @@ pub fn fail(app: *App, code: ExitCode, comptime fmt: []const u8, args: anytype) 
             .auth => "unauthorized",
             .terms => "terms_required",
             .rate_limited => "rate_limited",
+            .api_access => "api_access_required",
         };
         std.json.Stringify.value(.{ .@"error" = app.error_code orelse kind, .message = message }, .{}, app.err) catch {};
         app.err.writeByte('\n') catch {};

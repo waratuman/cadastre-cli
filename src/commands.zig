@@ -918,3 +918,24 @@ test "rank: criteria, ranks, composites, values; --limit" {
     try t.expectOutput(&.{ "CRITERION", "lower_better", "ranked by percentile", "Tulsa, OK", "66.7", "... and 2 more", credits });
     try testing.expect(std.mem.indexOf(u8, t.out.written(), "Fresno") == null);
 }
+
+test "a 403 api_access_required has its own message and exit code; terms_required keeps 4" {
+    var t: TestApp = undefined;
+    t.init();
+    defer t.deinit();
+    const body =
+        \\{"error":"api_access_required","message":"API access is not enabled for this account"}
+    ;
+    try testing.expectEqual(error.Reported, api.failFor(&t.app, .{ .status = 403, .body = body }, .stored, "https://getcadastre.com/api/v1/metros"));
+    try testing.expectEqual(App.ExitCode.api_access, t.app.exit_code);
+    try testing.expectEqual(@as(u8, 6), @intFromEnum(t.app.exit_code));
+    try testing.expect(std.mem.indexOf(u8, t.err.written(), "support@getcadastre.com") != null);
+
+    t.app.json = true;
+    t.err.clearRetainingCapacity();
+    try testing.expectEqual(error.Reported, api.failFor(&t.app, .{ .status = 403, .body = body }, .stored, "https://getcadastre.com/api/v1/metros"));
+    try testing.expect(std.mem.indexOf(u8, t.err.written(), "\"error\":\"api_access_required\"") != null);
+
+    try testing.expectEqual(error.Reported, api.failFor(&t.app, .{ .status = 403, .body = "{\"error\":\"terms_required\",\"message\":\"x\"}" }, .stored, "https://getcadastre.com/api/v1/metros"));
+    try testing.expectEqual(@as(u8, 4), @intFromEnum(t.app.exit_code));
+}

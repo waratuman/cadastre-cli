@@ -130,6 +130,9 @@ pub fn failFor(app: *App, res: http.Response, origin: Origin, request_url: []con
             if (e.code != null and std.mem.eql(u8, e.code.?, "terms_required")) {
                 return app.fail(.terms, "your account must accept Cadastre's current Terms first. Sign in at {s} and accept them, then try again", .{app.base_url});
             }
+            if (e.code != null and std.mem.eql(u8, e.code.?, "api_access_required")) {
+                return app.fail(.api_access, "your Cadastre account does not have API access enabled (the CLI and MCP server need it). Ask support@getcadastre.com to enable it", .{});
+            }
             if (e.code != null and std.mem.eql(u8, e.code.?, "insufficient_scope")) {
                 return app.fail(.auth, "this credential lacks the read scope. Run `cadastre login` again", .{});
             }
