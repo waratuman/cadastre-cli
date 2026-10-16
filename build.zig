@@ -74,6 +74,8 @@ pub fn build(b: *std.Build) void {
         pack.addArg(if (query.os_tag == .windows) "cadastre/cadastre.exe" else "cadastre/cadastre");
         const archive = pack.addOutputFileArg(archive_name);
         const checksum = pack.addOutputFileArg(b.fmt("{s}.sha256", .{archive_name}));
+        // Apache-2.0 asks that the licence travel with the binary.
+        pack.addFileArg(b.path("LICENSE"));
         sums.addFileArg(checksum);
 
         release_step.dependOn(&b.addInstallFileWithDir(archive, .{ .custom = "release" }, archive_name).step);

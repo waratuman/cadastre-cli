@@ -2,7 +2,7 @@
 //! tar, gzip or sha256sum on the machine (they differ between macOS, Linux and
 //! Windows).
 //!
-//!   package tar <binary> <path in archive> <out.tar.gz> <out.tar.gz.sha256>
+//!   package tar <binary> <path in archive> <out.tar.gz> <out.tar.gz.sha256> <LICENSE>
 //!   package sums <out SHA256SUMS> <file.sha256>...
 const std = @import("std");
 const Io = std.Io;
@@ -15,14 +15,17 @@ pub fn main(init: std.process.Init) !void {
 
     const cwd = Io.Dir.cwd();
     if (std.mem.eql(u8, args[1], "tar")) {
-        if (args.len != 6) return error.Usage;
+        if (args.len != 7) return error.Usage;
         const binary = try cwd.readFileAlloc(io, args[2], arena, .limited(256 << 20));
 
-        // The tar, in memory: one executable, mtime 0 so the archive depends
-        // only on the binary.
+        // The tar, in memory: the executable and the licence beside it,
+        // mtime 0 so the archive depends only on their bytes.
         var tar_bytes: Io.Writer.Allocating = .init(arena);
         var tar: std.tar.Writer = .{ .underlying_writer = &tar_bytes.writer };
         try tar.writeFileBytes(args[3], binary, .{ .mode = 0o755, .mtime = 0 });
+        const license = try cwd.readFileAlloc(io, args[6], arena, .limited(1 << 20));
+        const license_path = try std.fs.path.join(arena, &.{ std.fs.path.dirname(args[3]) orelse ".", "LICENSE" });
+        try tar.writeFileBytes(license_path, license, .{ .mode = 0o644, .mtime = 0 });
         try tar.finishPedantically();
 
         // gzip it. (The compressor needs room in its output's buffer.)

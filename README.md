@@ -21,12 +21,11 @@ runtime dependencies.
 curl -fsSL https://raw.githubusercontent.com/waratuman/cadastre-cli/main/install.sh | sh
 ```
 
-> **Placeholder.** The GitHub repository (`github.com/waratuman/cadastre-cli`)
-> does not exist yet, so neither does that URL nor the release downloads
-> `install.sh` fetches (`.../releases/latest/download/cadastre-<arch>-<os>.tar.gz`).
-> Until then, build from source (below), or run `zig build release` and point
-> the installer at the result:
-> `CADASTRE_RELEASES_URL=file://$PWD/zig-out/release sh install.sh`.
+> Releases are published at
+> [github.com/waratuman/cadastre-cli/releases](https://github.com/waratuman/cadastre-cli/releases).
+> Each archive holds the `cadastre` binary and the `LICENSE`, with a `.sha256`
+> file and a combined `SHA256SUMS`; the installer checks the checksum before
+> installing.
 
 `install.sh` is POSIX sh. It detects the OS (Linux, macOS) and CPU (x86_64,
 arm64), downloads the tarball and its `.sha256`, verifies the checksum, and
@@ -317,5 +316,4 @@ yet (checksums only).
 
 ## License
 
-TODO: the owner has not chosen a license yet. Until a `LICENSE` file is added,
-no license is granted.
+Licensed under the [Apache License, Version 2.0](LICENSE). Copyright 2026 James Bracy.

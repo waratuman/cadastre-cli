@@ -3,10 +3,10 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/waratuman/cadastre-cli/main/install.sh | sh
 #
-# PLACEHOLDER: the GitHub repository does not exist yet. Until it does, the
-# download URL below points nowhere; set CADASTRE_RELEASES_URL to a directory
-# (https:// or file://) holding the release tarballs (`zig build release`
-# writes them to zig-out/release/).
+# Downloads come from the GitHub releases of waratuman/cadastre-cli. To install
+# from elsewhere, set CADASTRE_RELEASES_URL to a directory (https:// or file://)
+# holding the release tarballs (`zig build release` writes them to
+# zig-out/release/).
 #
 # Options (environment):
 #   CADASTRE_INSTALL_DIR   where to put the binary (default ~/.local/bin, or
@@ -20,7 +20,6 @@
 # run it as root.
 set -eu
 
-# PLACEHOLDER until https://github.com/waratuman/cadastre-cli exists.
 REPO="https://github.com/waratuman/cadastre-cli"
 
 say() { printf '%s\n' "$*"; }
