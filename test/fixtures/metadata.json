@@ -1,0 +1,33 @@
+{
+  "issuer": "http://127.0.0.1:3999",
+  "authorization_endpoint": "http://127.0.0.1:3999/oauth/authorize",
+  "token_endpoint": "http://127.0.0.1:3999/oauth/token",
+  "registration_endpoint": "http://127.0.0.1:3999/oauth/register",
+  "revocation_endpoint": "http://127.0.0.1:3999/oauth/revoke",
+  "device_authorization_endpoint": "http://127.0.0.1:3999/oauth/device_authorization",
+  "scopes_supported": [
+    "read"
+  ],
+  "response_types_supported": [
+    "code"
+  ],
+  "response_modes_supported": [
+    "query"
+  ],
+  "grant_types_supported": [
+    "authorization_code",
+    "refresh_token",
+    "urn:ietf:params:oauth:grant-type:device_code"
+  ],
+  "token_endpoint_auth_methods_supported": [
+    "none"
+  ],
+  "revocation_endpoint_auth_methods_supported": [
+    "none"
+  ],
+  "code_challenge_methods_supported": [
+    "S256"
+  ],
+  "authorization_response_iss_parameter_supported": true,
+  "service_documentation": "http://127.0.0.1:3999/docs/api"
+}

@@ -1,0 +1,199 @@
+{
+  "data": {
+    "method": "percentile",
+    "scored": true,
+    "scope": {
+      "states": []
+    },
+    "requirements": {
+      "tier": "250k",
+      "max_hazard": 80
+    },
+    "funnel": [
+      {
+        "label": "US metro areas",
+        "count": 4
+      },
+      {
+        "label": "Geographic scope",
+        "count": 4
+      },
+      {
+        "label": "Population ≥ 250K",
+        "count": 3
+      },
+      {
+        "label": "Hazard ≤ 80",
+        "count": 3
+      }
+    ],
+    "criteria": [
+      {
+        "measure": "unemployment_rate",
+        "label": "Unemployment rate",
+        "direction": "lower_better",
+        "weight": 2.0,
+        "cutoff": null,
+        "scoring": true,
+        "observed": 3,
+        "calculation": "published for the metro",
+        "computed_by_cadastre": false
+      },
+      {
+        "measure": "population",
+        "label": "Population",
+        "direction": "higher_better",
+        "weight": 1.0,
+        "cutoff": null,
+        "scoring": true,
+        "observed": 3,
+        "calculation": "published for the metro",
+        "computed_by_cadastre": false
+      }
+    ],
+    "count": 3,
+    "metros": [
+      {
+        "id": "01a1450d-9ee8-76cf-8620-e535694a700e",
+        "slug": "us/ok/test-46140",
+        "cbsa": "46140",
+        "name": "Tulsa, OK",
+        "states": [
+          "OK"
+        ],
+        "right_to_work": true,
+        "population": 1000000.0,
+        "rank": 1,
+        "composite": 66.7,
+        "eliminated": false,
+        "reasons": [],
+        "criteria": [
+          {
+            "measure": "unemployment_rate",
+            "value": 3.4,
+            "score": 83.3,
+            "contribution": 55.53
+          },
+          {
+            "measure": "population",
+            "value": 1000000.0,
+            "score": 33.3,
+            "contribution": 11.1
+          }
+        ]
+      },
+      {
+        "id": "01a1450d-9eaa-783b-9f7c-2704994e55ac",
+        "slug": "us/tx/test-12420",
+        "cbsa": "12420",
+        "name": "Austin-Round Rock, TX",
+        "states": [
+          "TX"
+        ],
+        "right_to_work": true,
+        "population": 2400000.0,
+        "rank": 2,
+        "composite": 61.1,
+        "eliminated": false,
+        "reasons": [],
+        "criteria": [
+          {
+            "measure": "unemployment_rate",
+            "value": 3.9,
+            "score": 50.0,
+            "contribution": 33.33
+          },
+          {
+            "measure": "population",
+            "value": 2400000.0,
+            "score": 83.3,
+            "contribution": 27.77
+          }
+        ]
+      },
+      {
+        "id": "01a1450d-9f0a-795d-890a-74df3d24f876",
+        "slug": "us/ca/test-23420",
+        "cbsa": "23420",
+        "name": "Fresno, CA",
+        "states": [
+          "CA"
+        ],
+        "right_to_work": false,
+        "population": 1000000.0,
+        "rank": 3,
+        "composite": 22.2,
+        "eliminated": false,
+        "reasons": [],
+        "criteria": [
+          {
+            "measure": "unemployment_rate",
+            "value": 7.8,
+            "score": 16.7,
+            "contribution": 11.13
+          },
+          {
+            "measure": "population",
+            "value": 1000000.0,
+            "score": 33.3,
+            "contribution": 11.1
+          }
+        ]
+      }
+    ]
+  },
+  "attribution": [
+    {
+      "dataset": "tiger",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Region names and codes: Census TIGER/Line 2025 (metro areas are OMB core-based statistical area delineations; right-to-work is Cadastre's list of states with such laws)",
+      "url": "https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [],
+      "retrieved_at": null
+    },
+    {
+      "dataset": "acs",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Source: U.S. Census Bureau",
+      "url": "https://www.census.gov/programs-surveys/acs",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [
+        "This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "bls-unemployment",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "credit": "Source: U.S. Bureau of Labor Statistics",
+      "url": "https://www.bls.gov/lau/",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.bls.gov/bls/linksite.htm",
+      "notes": [
+        "BLS.gov cannot vouch for the data or analyses derived from these data after the data have been retrieved from BLS.gov."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "nri",
+      "publisher": "FEMA",
+      "credit": "Source: FEMA",
+      "url": "https://hazards.fema.gov/nri/",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.fema.gov/about/website-information",
+      "notes": [],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "cadastre",
+      "publisher": "Cadastre",
+      "credit": "Values marked computed_by_cadastre are computed by Cadastre",
+      "notes": [
+        "A metro value marked computed_by_cadastre is Cadastre's aggregate of the publisher's county figures (the measure's calculation says how) or a figure Cadastre derived from the publisher's data; it is not a figure the publisher printed, and the publisher has not reviewed or endorsed it."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "data": {
+    "id": "01a1450d-9eaa-783b-9f7c-2704994e55ac",
+    "slug": "us/tx/test-12420",
+    "cbsa": "12420",
+    "name": "Austin-Round Rock, TX",
+    "states": [
+      "TX"
+    ],
+    "right_to_work": true,
+    "population": 2400000.0,
+    "measures": [
+      {
+        "name": "electricity_industrial_price",
+        "label": "Industrial electricity price",
+        "unit": "cents per kWh",
+        "dataset": "eia",
+        "value": 8.0,
+        "calculation": "population-weighted county mean, of the state's EIA price applied to each county in it",
+        "computed_by_cadastre": true,
+        "vintages": [
+          2025
+        ]
+      },
+      {
+        "name": "fema_nri_risk_index",
+        "label": "FEMA National Risk Index",
+        "unit": "risk score 0-100",
+        "dataset": "nri",
+        "value": 30.0,
+        "calculation": "population-weighted county mean",
+        "computed_by_cadastre": true,
+        "vintages": [
+          2023
+        ]
+      },
+      {
+        "name": "household_poverty_rate",
+        "label": "Household poverty rate",
+        "unit": "percent of households",
+        "dataset": "acs",
+        "value": 11.5,
+        "calculation": "Cadastre's share computed from ACS counts",
+        "computed_by_cadastre": true,
+        "vintages": [
+          2023
+        ]
+      },
+      {
+        "name": "places_adult_population",
+        "label": "Adult population, 18 and over (CDC PLACES)",
+        "unit": "people aged 18+ (Census 2023 county estimates as published in CDC PLACES)",
+        "dataset": "cdc-places",
+        "value": 1800000.0,
+        "calculation": "sum over member counties",
+        "computed_by_cadastre": true,
+        "vintages": [
+          2023
+        ]
+      },
+      {
+        "name": "places_obesity",
+        "label": "Adult obesity, age-adjusted (CDC PLACES)",
+        "unit": "percent of adults, age-adjusted (CDC PLACES 2025 release, 2023 BRFSS model-based county estimate); metro value is Cadastre's adult-population-weighted average of CDC county estimates",
+        "dataset": "cdc-places",
+        "value": 33.0,
+        "calculation": "mean of member counties weighted by Adult population, 18 and over (CDC PLACES), over the counties with a value (unavailable where those hold under 80% of it)",
+        "computed_by_cadastre": true,
+        "vintages": [
+          2023
+        ]
+      },
+      {
+        "name": "population",
+        "label": "Population",
+        "unit": "people",
+        "dataset": "acs",
+        "value": 2400000.0,
+        "calculation": "published for the metro",
+        "computed_by_cadastre": false,
+        "vintages": [
+          2023
+        ]
+      },
+      {
+        "name": "unemployment_rate",
+        "label": "Unemployment rate",
+        "unit": "percent of labor force, annual average",
+        "dataset": "bls-unemployment",
+        "value": 3.9,
+        "calculation": "published for the metro",
+        "computed_by_cadastre": false,
+        "vintages": [
+          2025
+        ]
+      }
+    ]
+  },
+  "attribution": [
+    {
+      "dataset": "tiger",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Region names and codes: Census TIGER/Line 2025 (metro areas are OMB core-based statistical area delineations; right-to-work is Cadastre's list of states with such laws)",
+      "url": "https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [],
+      "retrieved_at": null
+    },
+    {
+      "dataset": "acs",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Source: U.S. Census Bureau",
+      "url": "https://www.census.gov/programs-surveys/acs",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [
+        "This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "bls-unemployment",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "credit": "Source: U.S. Bureau of Labor Statistics",
+      "url": "https://www.bls.gov/lau/",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.bls.gov/bls/linksite.htm",
+      "notes": [
+        "BLS.gov cannot vouch for the data or analyses derived from these data after the data have been retrieved from BLS.gov."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "cdc-places",
+      "publisher": "Centers for Disease Control and Prevention (CDC), Division of Population Health",
+      "credit": "Source: CDC",
+      "url": "https://data.cdc.gov/d/swc5-untb",
+      "license": "Public domain (U.S. government work), on CDC's terms: credit \"Source: CDC\", state that the data is available at no charge at data.cdc.gov, no endorsement implied, no CDC or HHS logos",
+      "license_url": "https://www.cdc.gov/other/agencymaterials.html",
+      "notes": [
+        "Source: CDC, PLACES: Local Data for Better Health (2025 release, county estimates from 2023 BRFSS). Available at no charge at https://data.cdc.gov/d/swc5-untb. Metro percentages are Cadastre's adult-population-weighted averages of CDC's county estimates, not CDC figures."
+      ],
+      "disclaimer": "Use of CDC data does not imply endorsement by CDC, ATSDR, HHS or the U.S. Government of Cadastre or its services.",
+      "conditions": [
+        "Credit the agency: \"Source: CDC\".",
+        "Print the disclaimer: Use of CDC data does not imply endorsement by CDC, ATSDR, HHS or the U.S. Government of Cadastre or its services.",
+        "Do not change the substantive content: county values are shown as CDC published them; metro values are labelled as Cadastre's aggregate of CDC county figures.",
+        "State that the data is available at no charge on the agency website (data.cdc.gov).",
+        "Links to CDC open in a new window; no CDC, ATSDR or HHS logos."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "eia",
+      "publisher": "U.S. Energy Information Administration",
+      "credit": "Source: U.S. Energy Information Administration",
+      "url": "https://www.eia.gov/electricity/data.php",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.eia.gov/about/copyrights_reuse.php",
+      "notes": [],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "nri",
+      "publisher": "FEMA",
+      "credit": "Source: FEMA",
+      "url": "https://hazards.fema.gov/nri/",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.fema.gov/about/website-information",
+      "notes": [],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "cadastre",
+      "publisher": "Cadastre",
+      "credit": "Values marked computed_by_cadastre are computed by Cadastre",
+      "notes": [
+        "A metro value marked computed_by_cadastre is Cadastre's aggregate of the publisher's county figures (the measure's calculation says how) or a figure Cadastre derived from the publisher's data; it is not a figure the publisher printed, and the publisher has not reviewed or endorsed it."
+      ]
+    }
+  ]
+}

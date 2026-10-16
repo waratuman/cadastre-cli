@@ -1,0 +1,163 @@
+{
+  "data": [
+    {
+      "key": "acs",
+      "name": "American Community Survey 5-year estimates",
+      "publisher": "U.S. Census Bureau",
+      "category": "Demographics",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "url": "https://www.census.gov/programs-surveys/acs",
+      "refresh_cadence": "annual",
+      "vintages": [
+        2023
+      ],
+      "geographies": [
+        "msa",
+        "county"
+      ],
+      "measures_count": 2
+    },
+    {
+      "key": "bls-unemployment",
+      "name": "Local Area Unemployment Statistics (county and metro unemployment)",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "category": "Labor",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.bls.gov/bls/linksite.htm",
+      "url": "https://www.bls.gov/lau/",
+      "refresh_cadence": "monthly",
+      "vintages": [
+        2025
+      ],
+      "geographies": [
+        "msa",
+        "state"
+      ],
+      "measures_count": 1
+    },
+    {
+      "key": "cdc-places",
+      "name": "PLACES: Local Data for Better Health, County Data (2025 release)",
+      "publisher": "Centers for Disease Control and Prevention (CDC), Division of Population Health",
+      "category": "Health",
+      "license": "Public domain (U.S. government work), on CDC's terms: credit \"Source: CDC\", state that the data is available at no charge at data.cdc.gov, no endorsement implied, no CDC or HHS logos",
+      "license_url": "https://www.cdc.gov/other/agencymaterials.html",
+      "url": "https://www.cdc.gov/places/",
+      "refresh_cadence": "annual",
+      "vintages": [
+        2023
+      ],
+      "geographies": [
+        "msa",
+        "county"
+      ],
+      "measures_count": 2
+    },
+    {
+      "key": "eia",
+      "name": "Electric power retail sales and prices by state",
+      "publisher": "U.S. Energy Information Administration",
+      "category": "Utilities",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.eia.gov/about/copyrights_reuse.php",
+      "url": "https://www.eia.gov/electricity/data.php",
+      "refresh_cadence": "monthly",
+      "vintages": [
+        2025
+      ],
+      "geographies": [
+        "msa",
+        "county"
+      ],
+      "measures_count": 1
+    },
+    {
+      "key": "nri",
+      "name": "National Risk Index (county)",
+      "publisher": "FEMA",
+      "category": "Hazard",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.fema.gov/about/website-information",
+      "url": "https://hazards.fema.gov/nri/",
+      "refresh_cadence": "annual",
+      "vintages": [
+        2023
+      ],
+      "geographies": [
+        "msa",
+        "county"
+      ],
+      "measures_count": 1
+    }
+  ],
+  "meta": {
+    "total": 5
+  },
+  "attribution": [
+    {
+      "dataset": "acs",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Source: U.S. Census Bureau",
+      "url": "https://www.census.gov/programs-surveys/acs",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [
+        "This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "bls-unemployment",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "credit": "Source: U.S. Bureau of Labor Statistics",
+      "url": "https://www.bls.gov/lau/",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.bls.gov/bls/linksite.htm",
+      "notes": [
+        "BLS.gov cannot vouch for the data or analyses derived from these data after the data have been retrieved from BLS.gov."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "cdc-places",
+      "publisher": "Centers for Disease Control and Prevention (CDC), Division of Population Health",
+      "credit": "Source: CDC",
+      "url": "https://data.cdc.gov/d/swc5-untb",
+      "license": "Public domain (U.S. government work), on CDC's terms: credit \"Source: CDC\", state that the data is available at no charge at data.cdc.gov, no endorsement implied, no CDC or HHS logos",
+      "license_url": "https://www.cdc.gov/other/agencymaterials.html",
+      "notes": [
+        "Source: CDC, PLACES: Local Data for Better Health (2025 release, county estimates from 2023 BRFSS). Available at no charge at https://data.cdc.gov/d/swc5-untb. Metro percentages are Cadastre's adult-population-weighted averages of CDC's county estimates, not CDC figures."
+      ],
+      "disclaimer": "Use of CDC data does not imply endorsement by CDC, ATSDR, HHS or the U.S. Government of Cadastre or its services.",
+      "conditions": [
+        "Credit the agency: \"Source: CDC\".",
+        "Print the disclaimer: Use of CDC data does not imply endorsement by CDC, ATSDR, HHS or the U.S. Government of Cadastre or its services.",
+        "Do not change the substantive content: county values are shown as CDC published them; metro values are labelled as Cadastre's aggregate of CDC county figures.",
+        "State that the data is available at no charge on the agency website (data.cdc.gov).",
+        "Links to CDC open in a new window; no CDC, ATSDR or HHS logos."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "eia",
+      "publisher": "U.S. Energy Information Administration",
+      "credit": "Source: U.S. Energy Information Administration",
+      "url": "https://www.eia.gov/electricity/data.php",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.eia.gov/about/copyrights_reuse.php",
+      "notes": [],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "nri",
+      "publisher": "FEMA",
+      "credit": "Source: FEMA",
+      "url": "https://hazards.fema.gov/nri/",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.fema.gov/about/website-information",
+      "notes": [],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    }
+  ]
+}

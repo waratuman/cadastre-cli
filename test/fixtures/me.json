@@ -1,0 +1,18 @@
+{
+  "user": {
+    "id": "01a1450d-a061-7b89-846c-877ad2839ffd",
+    "name": null
+  },
+  "account": {
+    "id": "01a1450d-a06b-750e-bf4b-7866db9344bc",
+    "name": "cli-e2e's account",
+    "role": "owner"
+  },
+  "credential": {
+    "type": "api_key",
+    "id": "01a1450d-a081-74dd-9748-9a01accc6f79",
+    "scopes": [
+      "read"
+    ]
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "data": {
+    "key": "acs",
+    "name": "American Community Survey 5-year estimates",
+    "publisher": "U.S. Census Bureau",
+    "category": "Demographics",
+    "license": "Public domain (U.S. federal government work)",
+    "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+    "url": "https://www.census.gov/programs-surveys/acs",
+    "refresh_cadence": "annual",
+    "vintages": [
+      2023
+    ],
+    "geographies": [
+      "msa",
+      "county"
+    ],
+    "measures_count": 2,
+    "measures": [
+      {
+        "name": "population",
+        "label": "Population",
+        "unit": "people",
+        "dataset": "acs",
+        "geographies": {
+          "msa": {
+            "source_grain": "msa",
+            "rollup": null,
+            "calculation": "published for the metro",
+            "computed_by_cadastre": false,
+            "regions": 4,
+            "vintages": [
+              2023
+            ]
+          },
+          "county": {
+            "source_grain": "county",
+            "rollup": null,
+            "calculation": "published for the county",
+            "computed_by_cadastre": false,
+            "regions": 4,
+            "vintages": [
+              2023
+            ]
+          }
+        }
+      },
+      {
+        "name": "household_poverty_rate",
+        "label": "Household poverty rate",
+        "unit": "percent of households",
+        "dataset": "acs",
+        "geographies": {
+          "msa": {
+            "source_grain": "msa",
+            "rollup": null,
+            "calculation": "Cadastre's share computed from ACS counts",
+            "computed_by_cadastre": true,
+            "regions": 4,
+            "vintages": [
+              2023
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "attribution": [
+    {
+      "dataset": "acs",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Source: U.S. Census Bureau",
+      "url": "https://www.census.gov/programs-surveys/acs",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [
+        "This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "cadastre",
+      "publisher": "Cadastre",
+      "credit": "Values marked computed_by_cadastre are computed by Cadastre",
+      "notes": [
+        "A metro value marked computed_by_cadastre is Cadastre's aggregate of the publisher's county figures (the measure's calculation says how) or a figure Cadastre derived from the publisher's data; it is not a figure the publisher printed, and the publisher has not reviewed or endorsed it."
+      ]
+    }
+  ]
+}

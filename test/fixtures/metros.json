@@ -1,0 +1,78 @@
+{
+  "data": [
+    {
+      "id": "01a1450d-9eaa-783b-9f7c-2704994e55ac",
+      "slug": "us/tx/test-12420",
+      "cbsa": "12420",
+      "name": "Austin-Round Rock, TX",
+      "states": [
+        "TX"
+      ],
+      "right_to_work": true,
+      "population": 2400000.0
+    },
+    {
+      "id": "01a1450d-9f2e-79c9-90a5-6dac65014e73",
+      "slug": "us/me/test-12620",
+      "cbsa": "12620",
+      "name": "Bangor, ME",
+      "states": [
+        "ME"
+      ],
+      "right_to_work": false,
+      "population": 150000.0
+    },
+    {
+      "id": "01a1450d-9f0a-795d-890a-74df3d24f876",
+      "slug": "us/ca/test-23420",
+      "cbsa": "23420",
+      "name": "Fresno, CA",
+      "states": [
+        "CA"
+      ],
+      "right_to_work": false,
+      "population": 1000000.0
+    },
+    {
+      "id": "01a1450d-9ee8-76cf-8620-e535694a700e",
+      "slug": "us/ok/test-46140",
+      "cbsa": "46140",
+      "name": "Tulsa, OK",
+      "states": [
+        "OK"
+      ],
+      "right_to_work": true,
+      "population": 1000000.0
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 100,
+    "total": 4,
+    "total_pages": 1
+  },
+  "attribution": [
+    {
+      "dataset": "tiger",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Region names and codes: Census TIGER/Line 2025 (metro areas are OMB core-based statistical area delineations; right-to-work is Cadastre's list of states with such laws)",
+      "url": "https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [],
+      "retrieved_at": null
+    },
+    {
+      "dataset": "acs",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Source: U.S. Census Bureau",
+      "url": "https://www.census.gov/programs-surveys/acs",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [
+        "This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    }
+  ]
+}

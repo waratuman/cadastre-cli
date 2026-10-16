@@ -1,0 +1,167 @@
+{
+  "data": {
+    "measures": [
+      {
+        "name": "population",
+        "label": "Population",
+        "unit": "people",
+        "dataset": "acs",
+        "calculation": "published for the metro",
+        "computed_by_cadastre": false,
+        "vintages": [
+          2023
+        ]
+      },
+      {
+        "name": "unemployment_rate",
+        "label": "Unemployment rate",
+        "unit": "percent of labor force, annual average",
+        "dataset": "bls-unemployment",
+        "calculation": "published for the metro",
+        "computed_by_cadastre": false,
+        "vintages": [
+          2025
+        ]
+      },
+      {
+        "name": "fema_nri_risk_index",
+        "label": "FEMA National Risk Index",
+        "unit": "risk score 0-100",
+        "dataset": "nri",
+        "calculation": "population-weighted county mean",
+        "computed_by_cadastre": true,
+        "vintages": [
+          2023
+        ]
+      },
+      {
+        "name": "electricity_industrial_price",
+        "label": "Industrial electricity price",
+        "unit": "cents per kWh",
+        "dataset": "eia",
+        "calculation": "population-weighted county mean, of the state's EIA price applied to each county in it",
+        "computed_by_cadastre": true,
+        "vintages": [
+          2025
+        ]
+      }
+    ],
+    "metros": [
+      {
+        "id": "01a1450d-9eaa-783b-9f7c-2704994e55ac",
+        "slug": "us/tx/test-12420",
+        "cbsa": "12420",
+        "name": "Austin-Round Rock, TX",
+        "states": [
+          "TX"
+        ],
+        "right_to_work": true,
+        "population": 2400000.0,
+        "values": {
+          "population": 2400000.0,
+          "unemployment_rate": 3.9,
+          "fema_nri_risk_index": 30.0,
+          "electricity_industrial_price": 8.0
+        }
+      },
+      {
+        "id": "01a1450d-9ee8-76cf-8620-e535694a700e",
+        "slug": "us/ok/test-46140",
+        "cbsa": "46140",
+        "name": "Tulsa, OK",
+        "states": [
+          "OK"
+        ],
+        "right_to_work": true,
+        "population": 1000000.0,
+        "values": {
+          "population": 1000000.0,
+          "unemployment_rate": 3.4,
+          "fema_nri_risk_index": 55.0,
+          "electricity_industrial_price": 8.0
+        }
+      },
+      {
+        "id": "01a1450d-9f0a-795d-890a-74df3d24f876",
+        "slug": "us/ca/test-23420",
+        "cbsa": "23420",
+        "name": "Fresno, CA",
+        "states": [
+          "CA"
+        ],
+        "right_to_work": false,
+        "population": 1000000.0,
+        "values": {
+          "population": 1000000.0,
+          "unemployment_rate": 7.8,
+          "fema_nri_risk_index": 70.0,
+          "electricity_industrial_price": 8.0
+        }
+      }
+    ]
+  },
+  "attribution": [
+    {
+      "dataset": "tiger",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Region names and codes: Census TIGER/Line 2025 (metro areas are OMB core-based statistical area delineations; right-to-work is Cadastre's list of states with such laws)",
+      "url": "https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [],
+      "retrieved_at": null
+    },
+    {
+      "dataset": "acs",
+      "publisher": "U.S. Census Bureau",
+      "credit": "Source: U.S. Census Bureau",
+      "url": "https://www.census.gov/programs-surveys/acs",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.census.gov/data/developers/about/terms-of-service.html",
+      "notes": [
+        "This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "bls-unemployment",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "credit": "Source: U.S. Bureau of Labor Statistics",
+      "url": "https://www.bls.gov/lau/",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.bls.gov/bls/linksite.htm",
+      "notes": [
+        "BLS.gov cannot vouch for the data or analyses derived from these data after the data have been retrieved from BLS.gov."
+      ],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "eia",
+      "publisher": "U.S. Energy Information Administration",
+      "credit": "Source: U.S. Energy Information Administration",
+      "url": "https://www.eia.gov/electricity/data.php",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.eia.gov/about/copyrights_reuse.php",
+      "notes": [],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "nri",
+      "publisher": "FEMA",
+      "credit": "Source: FEMA",
+      "url": "https://hazards.fema.gov/nri/",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://www.fema.gov/about/website-information",
+      "notes": [],
+      "retrieved_at": "2026-10-16T14:11:23Z"
+    },
+    {
+      "dataset": "cadastre",
+      "publisher": "Cadastre",
+      "credit": "Values marked computed_by_cadastre are computed by Cadastre",
+      "notes": [
+        "A metro value marked computed_by_cadastre is Cadastre's aggregate of the publisher's county figures (the measure's calculation says how) or a figure Cadastre derived from the publisher's data; it is not a figure the publisher printed, and the publisher has not reviewed or endorsed it."
+      ]
+    }
+  ]
+}
