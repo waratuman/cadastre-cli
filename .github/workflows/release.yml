@@ -1,0 +1,54 @@
+# Tests every push and pull request; on a v* tag, cross-compiles every target
+# and publishes a GitHub release with the tarballs, their .sha256 files and
+# SHA256SUMS (the files install.sh downloads).
+#
+# Not relied on: releases can be cut by hand with `zig build release` and
+# `gh release create` (README § Releasing).
+name: release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+      - run: zig fmt --check build.zig build.zig.zon src tools
+      - run: zig build test --summary all
+      - run: zig build && ./zig-out/bin/cadastre version
+      - run: sh -n install.sh
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+      - name: The tag matches build.zig.zon's version
+        run: |
+          version=$(sed -n 's/^ *\.version = "\(.*\)",/\1/p' build.zig.zon)
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME but build.zig.zon says $version"; exit 1; }
+      - run: zig build release
+      - run: cd zig-out/release && sha256sum -c SHA256SUMS
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes zig-out/release/*
