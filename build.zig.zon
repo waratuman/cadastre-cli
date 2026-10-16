@@ -1,0 +1,16 @@
+.{
+    .name = .cadastre_cli,
+    .version = "0.1.0",
+    // Zig is pre-1.0 and its standard library changes between releases
+    // (0.16 rewrote I/O around std.Io). The code is written against 0.16.0
+    // exactly; README § Building from source.
+    .minimum_zig_version = "0.16.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "tools",
+        "test",
+    },
+    .fingerprint = 0x2f4ea1e476e985a3,
+}
