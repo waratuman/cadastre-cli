@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # End-to-end check of the CLI against a LOCAL Cadastre server (never
-# production). It signs in with an API key, runs every data command, then
+# production). It runs data commands without a sign-in, signs in with an API
+# key, runs every data command, then
 # drives the browser login (PKCE + loopback) and the device login with curl
 # standing in for the browser, forces a token refresh and signs out.
 #
@@ -39,10 +40,23 @@ step() { printf '%-72s ' "$1"; }
 ok() { echo ok; pass=$((pass + 1)); }
 die() { echo "FAIL: $*" >&2; exit 1; }
 
-# ---- API key --------------------------------------------------------------------------------
-step "whoami before login exits 3"
-set +e; "$CLI" whoami >/dev/null 2>&1; rc=$?; set -e
+# ---- no sign-in -----------------------------------------------------------------------------
+step "whoami before login: not signed in (anonymous), exit 0"
+"$CLI" whoami | grep -q "Not signed in (anonymous" || die "whoami"
+[ "$("$CLI" whoami --json | jq -r .signed_in)" = false ] || die "whoami --json"; ok
+
+for cmd in "datasets" "metros" "metro $METRO" "screen --min-pop 250k"; do
+  step "$cmd --json without a sign-in carries attribution"
+  # shellcheck disable=SC2086
+  "$CLI" $cmd --json | jq -e '.attribution | type == "array"' >/dev/null || die "$cmd"
+  ok
+done
+
+step "a bad CADASTRE_API_KEY is refused (exit 3), not dropped"
+set +e; CADASTRE_API_KEY="cad_key_$(printf 'A%.0s' $(seq 43))" "$CLI" metros >/dev/null 2>&1; rc=$?; set -e
 [ "$rc" = 3 ] || die "exit $rc"; ok
+
+# ---- API key --------------------------------------------------------------------------------
 
 step "login --key (from stdin)"
 printf '%s\n' "$CADASTRE_E2E_API_KEY" | "$CLI" login --key >/dev/null || die "login --key"

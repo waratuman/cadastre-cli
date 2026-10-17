@@ -739,15 +739,20 @@ pub fn whoami(app: *App, rest: []const []const u8) Error!void {
     const o = try parse(app, rest, &.{});
     try noPositionals(app, o, "whoami");
     const cred = try api.current(app);
+    if (cred.origin == .anonymous) return whoamiAnonymous(app);
     const answer = try api.get(app, "/me", &.{});
     if (app.json) return emitJson(app, answer);
-    const me = answer.root;
-    const account = jv.get(me, "account");
-    const credential = jv.get(me, "credential");
     const where: []const u8 = switch (cred.origin) {
         .env => "CADASTRE_API_KEY",
         .stored => if (cred.saved) |s| s.backend.label() else "saved",
+        .anonymous => unreachable,
     };
+    return renderWhoami(app, answer.root, where);
+}
+
+pub fn renderWhoami(app: *App, me: Value, where: []const u8) Error!void {
+    const account = jv.get(me, "account");
+    const credential = jv.get(me, "credential");
     try w(app, app.out.print("{s}\n", .{app.base_url}));
     try field(app, "User", personName(me));
     try field(app, "Account", try m(app, std.fmt.allocPrint(app.gpa, "{s} ({s})", .{ jv.str(account, "name") orelse "-", jv.str(account, "role") orelse "-" })));
@@ -756,6 +761,25 @@ pub fn whoami(app: *App, rest: []const []const u8) Error!void {
         try m(app, render.joinList(app.gpa, jv.arr(credential, "scopes"), " ")),
     })));
     try field(app, "From", where);
+    const access = jv.get(me, "access");
+    if (jv.str(access, "tier")) |tier| {
+        const limits = jv.get(access, "rate_limit");
+        try field(app, "Limits", try m(app, std.fmt.allocPrint(app.gpa, "{s} a minute, {s} a day{s}", .{
+            try m(app, render.cell(app.gpa, jv.get(limits, "per_minute"))),
+            try m(app, render.cell(app.gpa, jv.get(limits, "per_day"))),
+            if (std.mem.eql(u8, tier, "public")) " per address (this account has no API access: ask support@getcadastre.com for higher limits)" else "",
+        })));
+    }
+}
+
+/// `whoami` with no credential: nothing to ask the API (GET /me needs one).
+fn whoamiAnonymous(app: *App) Error!void {
+    if (app.json) {
+        try w(app, std.json.Stringify.value(.{ .signed_in = false, .base_url = app.base_url, .access = .{ .tier = "anonymous" } }, .{}, app.out));
+        try w(app, app.out.writeByte('\n'));
+        return;
+    }
+    try w(app, app.out.print("{s}\nNot signed in (anonymous: public data, {s}). Run `cadastre login` for higher limits.\n", .{ app.base_url, api.anonymous_limit }));
 }
 
 // ---- docs, version ----------------------------------------------------------------------
@@ -938,4 +962,62 @@ test "a 403 api_access_required has its own message and exit code; terms_require
 
     try testing.expectEqual(error.Reported, api.failFor(&t.app, .{ .status = 403, .body = "{\"error\":\"terms_required\",\"message\":\"x\"}" }, .stored, "https://getcadastre.com/api/v1/metros"));
     try testing.expectEqual(@as(u8, 4), @intFromEnum(t.app.exit_code));
+}
+
+test "whoami without a credential: not signed in, anonymous, public data, the limit" {
+    var t: TestApp = undefined;
+    t.init();
+    defer t.deinit();
+    try whoamiAnonymous(&t.app);
+    try t.expectOutput(&.{ "https://getcadastre.com", "Not signed in (anonymous: public data, 30 requests a minute)", "cadastre login" });
+    try testing.expectEqual(App.ExitCode.ok, t.app.exit_code);
+
+    t.app.json = true;
+    t.out.clearRetainingCapacity();
+    try whoamiAnonymous(&t.app);
+    try t.expectOutput(&.{ "\"signed_in\":false", "\"tier\":\"anonymous\"" });
+}
+
+test "anonymous: a 429 suggests signing in, a 401 says a sign-in is needed" {
+    var t: TestApp = undefined;
+    t.init();
+    defer t.deinit();
+    const limited = "{\"error\":\"rate_limited\",\"message\":\"Too many requests. Try again in 20 seconds.\"}";
+    try testing.expectEqual(error.Reported, api.failFor(&t.app, .{ .status = 429, .body = limited, .retry_after = "20" }, .anonymous, "https://getcadastre.com/api/v1/metros"));
+    try testing.expectEqual(App.ExitCode.rate_limited, t.app.exit_code);
+    try testing.expect(std.mem.indexOf(u8, t.err.written(), "Retry after 20 seconds. Not signed in: `cadastre login` gives higher limits.") != null);
+
+    t.err.clearRetainingCapacity();
+    try testing.expectEqual(error.Reported, api.failFor(&t.app, .{ .status = 429, .body = limited, .retry_after = "20" }, .stored, "https://getcadastre.com/api/v1/metros"));
+    try testing.expect(std.mem.indexOf(u8, t.err.written(), "cadastre login") == null);
+
+    t.err.clearRetainingCapacity();
+    try testing.expectEqual(error.Reported, api.failFor(&t.app, .{ .status = 401, .body = "{\"error\":\"unauthorized\",\"message\":\"x\"}" }, .anonymous, "https://getcadastre.com/api/v1/me"));
+    try testing.expectEqual(App.ExitCode.auth, t.app.exit_code);
+    try testing.expect(std.mem.indexOf(u8, t.err.written(), "not signed in") != null);
+}
+
+test "whoami shows the limits /me reports, and why they are lower without API access" {
+    var t: TestApp = undefined;
+    t.init();
+    defer t.deinit();
+    const me = try t.answer("me.json");
+    try renderWhoami(&t.app, me.root, "macOS Keychain");
+    try t.expectOutput(&.{ "cli-e2e's account (owner)", "api_key, scopes: read", "macOS Keychain", "Limits:", "60 a minute, 10,000 a day" });
+    try testing.expect(std.mem.indexOf(u8, t.out.written(), "no API access") == null);
+
+    t.out.clearRetainingCapacity();
+    const public = try std.json.parseFromSliceLeaky(Value, t.arena.allocator(),
+        \\{"user":{"id":"u","name":"Ann"},"account":{"id":"a","name":"Ann's account","role":"owner"},
+        \\ "credential":{"type":"oauth","id":"c","scopes":["read"]},
+        \\ "access":{"tier":"public","rate_limit":{"per_minute":30,"per_day":2000}}}
+    , .{});
+    try renderWhoami(&t.app, public, "file");
+    try t.expectOutput(&.{ "30 a minute, 2,000 a day per address", "no API access", "support@getcadastre.com" });
+
+    // An older server's /me, without access: no Limits line.
+    t.out.clearRetainingCapacity();
+    const old = try std.json.parseFromSliceLeaky(Value, t.arena.allocator(), "{\"user\":{\"id\":\"u\",\"name\":\"Ann\"},\"account\":{\"name\":\"A\",\"role\":\"owner\"},\"credential\":{\"type\":\"api_key\",\"scopes\":[\"read\"]}}", .{});
+    try renderWhoami(&t.app, old, "file");
+    try testing.expect(std.mem.indexOf(u8, t.out.written(), "Limits") == null);
 }

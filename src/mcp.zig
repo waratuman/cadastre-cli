@@ -1,7 +1,9 @@
 //! `cadastre mcp`: connect an AI assistant to Cadastre's remote MCP server
-//! (<base>/mcp, streamable HTTP). The assistant signs in itself, through the
-//! browser, on first use (OAuth with dynamic registration): no API key is
-//! written anywhere.
+//! (<base>/mcp, streamable HTTP). The server answers without a sign-in (the
+//! public datasets, at lower limits). With --sign-in the entry points at the
+//! sign-in address (<base>/mcp?auth=required), where the assistant signs in
+//! itself, through the browser, on first use (OAuth with dynamic
+//! registration), for higher limits: no API key is written anywhere.
 //!
 //! By default the exact command or JSON is printed and nothing is changed.
 //! With --write the client's config file is edited: the file is backed up
@@ -50,16 +52,32 @@ pub fn parseClient(raw: []const u8) ?Client {
 
 pub const server_name = "cadastre";
 
-pub fn serverUrl(gpa: Allocator, base_url: []const u8) Allocator.Error![]const u8 {
-    return std.fmt.allocPrint(gpa, "{s}/mcp", .{base_url});
+/// The query that makes the server ask a client without a token to sign in
+/// (MCP clients start OAuth only on a 401).
+pub const sign_in_query = "?auth=required";
+
+pub fn serverUrl(gpa: Allocator, base_url: []const u8, sign_in: bool) Allocator.Error![]const u8 {
+    return std.fmt.allocPrint(gpa, "{s}/mcp{s}", .{ base_url, if (sign_in) sign_in_query else "" });
+}
+
+/// Whether `mcp_url` is the sign-in address.
+pub fn signsIn(mcp_url: []const u8) bool {
+    return std.mem.endsWith(u8, mcp_url, sign_in_query);
+}
+
+/// `mcp_url` as one shell word: quoted when it has a `?`, which zsh would
+/// otherwise take for a glob.
+fn shellWord(gpa: Allocator, mcp_url: []const u8) Allocator.Error![]const u8 {
+    if (std.mem.indexOfScalar(u8, mcp_url, '?') == null) return mcp_url;
+    return std.fmt.allocPrint(gpa, "'{s}'", .{mcp_url});
 }
 
 /// The one-line command that registers the server with the client's own CLI
 /// (null for Cursor, which has none).
 pub fn command(gpa: Allocator, client: Client, mcp_url: []const u8) Allocator.Error!?[]const u8 {
     return switch (client) {
-        .claude_code => try std.fmt.allocPrint(gpa, "claude mcp add --transport http --scope user {s} {s}", .{ server_name, mcp_url }),
-        .codex => try std.fmt.allocPrint(gpa, "codex mcp add {s} --url {s}", .{ server_name, mcp_url }),
+        .claude_code => try std.fmt.allocPrint(gpa, "claude mcp add --transport http --scope user {s} {s}", .{ server_name, try shellWord(gpa, mcp_url) }),
+        .codex => try std.fmt.allocPrint(gpa, "codex mcp add {s} --url {s}", .{ server_name, try shellWord(gpa, mcp_url) }),
         .cursor => null,
         .vscode => try std.fmt.allocPrint(gpa, "code --add-mcp '{{\"name\":\"{s}\",\"type\":\"http\",\"url\":\"{s}\"}}'", .{ server_name, mcp_url }),
     };
@@ -76,17 +94,28 @@ pub fn commandScope(client: Client) []const u8 {
 }
 
 /// What to do after adding the server (by command or by file).
-pub fn nextStep(client: Client) []const u8 {
+pub fn nextStep(client: Client, sign_in: bool) []const u8 {
+    if (!sign_in) return switch (client) {
+        .claude_code => "start `claude` and approve the cadastre server if asked; no sign-in needed",
+        .codex => "start `codex`; no sign-in needed",
+        .cursor, .vscode => "reload the editor; no sign-in needed",
+    };
     return switch (client) {
-        .claude_code => "start `claude`, approve the cadastre server if asked, then run /mcp and sign in",
+        .claude_code => "start `claude`, approve the cadastre server if asked, then run /mcp, choose cadastre and Authenticate",
         .codex => "codex mcp login " ++ server_name,
         .cursor, .vscode => "reload the editor; it signs in through your browser the first time it uses Cadastre",
     };
 }
 
-/// The MCP server, like the API, needs an account with API access enabled.
-pub const api_access_note = "Your Cadastre account needs API access. If the assistant reports\n" ++
-    "`api_access_required` (HTTP 403), ask support@getcadastre.com to enable it.\n";
+/// What signing in adds (or needs).
+pub fn accessNote(sign_in: bool) []const u8 {
+    return if (sign_in)
+        "Signed in, an account with API access gets higher limits (without it, the\n" ++
+            "same as no sign-in): ask support@getcadastre.com to enable it.\n"
+    else
+        "No sign-in: the public datasets at 30 requests a minute. For higher limits,\n" ++
+            "use the sign-in address instead: add --sign-in.\n";
+}
 
 /// Where --write puts the entry.
 pub const Target = struct {
@@ -201,22 +230,24 @@ pub fn mergeToml(gpa: Allocator, existing: ?[]const u8, mcp_url: []const u8) All
 
 pub fn run(app: *App, rest: []const []const u8) App.Error!void {
     var diag: args.Diagnostic = .{};
-    const o = args.parse(app.gpa, rest, &.{.{ .name = "write" }}, &diag) catch |err| switch (err) {
+    const o = args.parse(app.gpa, rest, &.{ .{ .name = "write" }, .{ .name = "sign-in" } }, &diag) catch |err| switch (err) {
         error.Usage => return app.fail(.usage, "{s}", .{diag.message}),
         error.OutOfMemory => return oom(app),
     };
     const sub = if (o.positionals.len > 0) o.positionals[0] else "list";
-    const mcp_url = serverUrl(app.gpa, app.base_url) catch return oom(app);
+    const sign_in = o.has("sign-in");
+    const mcp_url = serverUrl(app.gpa, app.base_url, sign_in) catch return oom(app);
     if (std.mem.eql(u8, sub, "list") or std.mem.eql(u8, sub, "url")) {
         if (app.json) {
-            out(app, std.json.Stringify.value(.{ .url = mcp_url, .clients = [_][]const u8{ "claude-code", "codex", "cursor", "vscode" } }, .{}, app.out));
+            const sign_in_url = serverUrl(app.gpa, app.base_url, true) catch return oom(app);
+            out(app, std.json.Stringify.value(.{ .url = mcp_url, .sign_in_url = sign_in_url, .clients = [_][]const u8{ "claude-code", "codex", "cursor", "vscode" } }, .{}, app.out));
             out(app, app.out.writeByte('\n'));
             return;
         }
         out(app, app.out.print("Cadastre's MCP server: {s}\n\nConnect an assistant:\n", .{mcp_url}));
         for (std.enums.values(Client)) |c| out(app, app.out.print("  cadastre mcp add {s: <12} {s}\n", .{ c.name(), c.title() }));
-        out(app, app.out.writeAll("\nThe assistant signs in through your browser the first time it uses Cadastre.\n"));
-        out(app, app.out.writeAll(api_access_note));
+        out(app, app.out.writeAll("\nIt works without a sign-in (public data, 30 requests a minute). Add --sign-in to\n" ++
+            "connect through the sign-in address: the assistant then signs in through your\nbrowser the first time it uses Cadastre, for higher limits.\n"));
         return;
     }
     if (!std.mem.eql(u8, sub, "add")) return app.fail(.usage, "unknown `cadastre mcp` command \"{s}\" (use `cadastre mcp add <client>`)", .{sub});
@@ -229,7 +260,7 @@ pub fn run(app: *App, rest: []const []const u8) App.Error!void {
 
     if (!o.has("write")) {
         if (app.json) {
-            out(app, std.json.Stringify.value(.{ .client = client.name(), .url = mcp_url, .command = cmd, .config_file = where.path, .config = snip, .next_step = nextStep(client) }, .{}, app.out));
+            out(app, std.json.Stringify.value(.{ .client = client.name(), .url = mcp_url, .sign_in = sign_in, .command = cmd, .config_file = where.path, .config = snip, .next_step = nextStep(client, sign_in) }, .{}, app.out));
             out(app, app.out.writeByte('\n'));
             return;
         }
@@ -257,9 +288,10 @@ fn writeInstructions(gpa: Allocator, o: *Io.Writer, client: Client, mcp_url: []c
     }
     if (client == .vscode or client == .claude_code)
         try o.writeAll("\nClaude Code and VS Code both read this .mcp.json (at the project root).\n");
-    try o.print("\nThen: {s}\n", .{nextStep(client)});
-    try o.print("\n`cadastre mcp add {s} --write` edits {s} for you (with a backup).\n\n", .{ client.name(), config_path });
-    try o.writeAll(api_access_note);
+    const sign_in = signsIn(mcp_url);
+    try o.print("\nThen: {s}\n", .{nextStep(client, sign_in)});
+    try o.print("\n`cadastre mcp add {s}{s} --write` edits {s} for you (with a backup).\n\n", .{ client.name(), if (sign_in) " --sign-in" else "", config_path });
+    try o.writeAll(accessNote(sign_in));
 }
 
 fn out(app: *App, result: anytype) void {
@@ -298,8 +330,8 @@ fn write(app: *App, client: Client, where: Target, mcp_url: []const u8) App.Erro
                 return app.fail(.failure, "could not write {s}: {s}", .{ where.path, @errorName(err) });
             out(app, app.out.print("Added Cadastre's MCP server ({s}) for {s}: {s}.\n", .{ mcp_url, where.scope, where.path }));
             if (backup) |b| out(app, app.out.print("Backup of the previous file: {s}\n", .{b}));
-            out(app, app.out.print("Next: {s}\n", .{nextStep(client)}));
-            out(app, app.out.writeAll(api_access_note));
+            out(app, app.out.print("Next: {s}\n", .{nextStep(client, signsIn(mcp_url))}));
+            out(app, app.out.writeAll(accessNote(signsIn(mcp_url))));
         },
     }
 }
@@ -324,14 +356,14 @@ test "the printed commands" {
     try testing.expect((try command(gpa, .cursor, u)) == null);
 }
 
-test "the printed instructions show the command and the config file, and the API access note" {
+test "the printed instructions show the command and the config file, and how to sign in" {
     var arena: std.heap.ArenaAllocator = .init(testing.allocator);
     defer arena.deinit();
     const gpa = arena.allocator();
     const u = "https://getcadastre.com/mcp";
     const cases = [_]struct { Client, []const u8, []const []const u8 }{
-        .{ .claude_code, ".mcp.json", &.{ "claude mcp add --transport http --scope user cadastre https://getcadastre.com/mcp", "Or put this in .mcp.json", "\"mcpServers\"", "/mcp" } },
-        .{ .codex, "/h/.codex/config.toml", &.{ "codex mcp add cadastre --url https://getcadastre.com/mcp", "Then: codex mcp login cadastre", "[mcp_servers.cadastre]" } },
+        .{ .claude_code, ".mcp.json", &.{ "claude mcp add --transport http --scope user cadastre https://getcadastre.com/mcp", "Or put this in .mcp.json", "\"mcpServers\"", "/mcp", "no sign-in needed" } },
+        .{ .codex, "/h/.codex/config.toml", &.{ "codex mcp add cadastre --url https://getcadastre.com/mcp", "Then: start `codex`; no sign-in needed", "[mcp_servers.cadastre]" } },
         .{ .vscode, ".mcp.json", &.{ "code --add-mcp '{\"name\":\"cadastre\",\"type\":\"http\",\"url\":\"https://getcadastre.com/mcp\"}'", "Or put this in .mcp.json", "\"mcpServers\"", "\"type\": \"http\"" } },
         .{ .cursor, "/h/.cursor/mcp.json", &.{ "has no command", "Put this in /h/.cursor/mcp.json", "\"mcpServers\"" } },
     };
@@ -343,9 +375,24 @@ test "the printed instructions show the command and the config file, and the API
                 return error.TestExpectedOutput;
             }
         }
-        try testing.expect(std.mem.indexOf(u8, text, "api_access_required") != null);
-        try testing.expect(std.mem.indexOf(u8, text, "support@getcadastre.com") != null);
+        try testing.expect(std.mem.indexOf(u8, text, "30 requests a minute") != null);
+        try testing.expect(std.mem.indexOf(u8, text, "--sign-in") != null);
     }
+
+    // The sign-in address: quoted for the shell, and the client's own sign-in step.
+    const s = "https://getcadastre.com/mcp?auth=required";
+    try testing.expect(signsIn(s) and !signsIn(u));
+    try testing.expectEqualStrings(s, try serverUrl(gpa, "https://getcadastre.com", true));
+    try testing.expectEqualStrings(u, try serverUrl(gpa, "https://getcadastre.com", false));
+    const claude = try instructions(gpa, .claude_code, s, ".mcp.json");
+    try testing.expect(std.mem.indexOf(u8, claude, "claude mcp add --transport http --scope user cadastre 'https://getcadastre.com/mcp?auth=required'") != null);
+    try testing.expect(std.mem.indexOf(u8, claude, "run /mcp, choose cadastre and Authenticate") != null);
+    try testing.expect(std.mem.indexOf(u8, claude, "\"url\": \"https://getcadastre.com/mcp?auth=required\"") != null);
+    try testing.expect(std.mem.indexOf(u8, claude, "support@getcadastre.com") != null);
+    try testing.expect(std.mem.indexOf(u8, claude, "cadastre mcp add claude-code --sign-in --write") != null);
+    const codex = try instructions(gpa, .codex, s, "/h/.codex/config.toml");
+    try testing.expect(std.mem.indexOf(u8, codex, "codex mcp add cadastre --url 'https://getcadastre.com/mcp?auth=required'") != null);
+    try testing.expect(std.mem.indexOf(u8, codex, "Then: codex mcp login cadastre") != null);
 }
 
 test "snippets per client" {

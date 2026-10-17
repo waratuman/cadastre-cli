@@ -8,8 +8,8 @@ const overview =
     \\
     \\Usage: cadastre <command> [flags]
     \\
-    \\Account
-    \\  login                Sign in through the browser (--device, --key)
+    \\Account (optional: the data commands work without signing in)
+    \\  login                Sign in for higher limits (--device, --key)
     \\  logout               Sign out and revoke the sign-in
     \\  whoami               Who the CLI acts as
     \\
@@ -34,6 +34,9 @@ const overview =
     \\                       default https://getcadastre.com)
     \\  -h, --help           Help for a command
     \\
+    \\Without a sign-in the CLI reads the public datasets at 30 requests a
+    \\minute; `cadastre login` (or CADASTRE_API_KEY) gives higher limits.
+    \\
     \\Every answer carries the credits of the data behind it, printed below the
     \\figures: keep them with the figures wherever you use them
     \\(https://getcadastre.com/terms#api, https://getcadastre.com/docs/rights).
@@ -49,7 +52,9 @@ const topics = [_]Topic{
     \\Usage: cadastre login [--device | --key] [--no-browser] [--client-id <id>]
     \\
     \\Signs in and saves the credential for this site (--base-url) in the
-    \\macOS Keychain, the Secret Service on Linux, or a 0600 file.
+    \\macOS Keychain, the Secret Service on Linux, or a 0600 file. Optional:
+    \\without it the data commands read the public datasets at 30 requests a
+    \\minute; signed in, an account with API access gets higher limits.
     \\
     \\  (default)       Opens the browser; you approve Cadastre CLI on the
     \\                  consent page and the browser hands the code back to a
@@ -79,8 +84,9 @@ const topics = [_]Topic{
     .{ .name = "whoami", .text =
     \\Usage: cadastre whoami [--json]
     \\
-    \\The person, account and credential the CLI acts as, and where the
-    \\credential comes from.
+    \\The person, account and credential the CLI acts as, where the
+    \\credential comes from, and its limits; or, with no credential, that the
+    \\CLI is not signed in (anonymous: public data, 30 requests a minute).
     \\
     },
     .{ .name = "datasets", .text =
@@ -185,7 +191,7 @@ const topics = [_]Topic{
     },
     .{ .name = "mcp", .text =
     \\Usage: cadastre mcp [list]
-    \\       cadastre mcp add <claude-code|codex|cursor|vscode> [--write]
+    \\       cadastre mcp add <claude-code|codex|cursor|vscode> [--sign-in] [--write]
     \\
     \\Connects an AI assistant to Cadastre's remote MCP server (<site>/mcp).
     \\Prints the client's command (Cursor has none) and the config file
@@ -197,9 +203,11 @@ const topics = [_]Topic{
     \\  vscode       ./.mcp.json (this workspace; the same file and entry
     \\               as Claude Code's)
     \\
-    \\The assistant signs in through your browser on first use; no key is
-    \\written to any file. The account needs API access: a 403
-    \\`api_access_required` means ask support@getcadastre.com to enable it.
+    \\The server works without signing in (public data, 30 requests a minute).
+    \\With --sign-in the entry uses the sign-in address (<site>/mcp?auth=required)
+    \\and the assistant signs in through your browser on first use, for higher
+    \\limits (an account with API access: ask support@getcadastre.com). No key
+    \\is written to any file.
     \\
     },
     .{ .name = "docs", .text =
