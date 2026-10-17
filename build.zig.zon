@@ -1,6 +1,6 @@
 .{
     .name = .cadastre_cli,
-    .version = "0.1.0",
+    .version = "0.2.0",
     // Zig is pre-1.0 and its standard library changes between releases
     // (0.16 rewrote I/O around std.Io). The code is written against 0.16.0
     // exactly; README § Building from source.
