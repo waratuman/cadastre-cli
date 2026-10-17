@@ -6,11 +6,14 @@ everything except listings) in your terminal, your scripts and your AI
 assistant.
 
 ```console
-$ cadastre login
 $ cadastre screen --min-pop 500k --max-unemployment 5.5 --max-power-price 10 --rtw-only --states TX,OK
 $ cadastre rank --min-pop 250k --criterion unemployment_rate:2:lower --criterion population
 $ cadastre mcp add claude-code
 ```
+
+No account needed: the data commands read Cadastre's public datasets without
+signing in, at 30 requests a minute and 2,000 a day per network address.
+`cadastre login` (optional) gives higher limits.
 
 Status: beta, like the API (`/api/v1`). Written in Zig, one static binary, no
 runtime dependencies.
@@ -35,13 +38,18 @@ to pin a release. It edits no shell profile; it says so when the directory is
 not on your `PATH`. Windows: download `cadastre-x86_64-windows.tar.gz` from the
 releases page.
 
-## Sign in
+## Sign in (optional)
+
+Signing in raises the limits (60 requests a minute and 10,000 a day per
+sign-in, for an account with API access; ask support@getcadastre.com); the
+data is the same. Without a credential the CLI sends no `Authorization`
+header and the API serves the public datasets anonymously.
 
 ```sh
 cadastre login            # opens your browser; approve "Cadastre CLI" on the consent page
 cadastre login --device   # no browser here (SSH, a container): type the code shown at getcadastre.com/oauth/device
 cadastre login --key      # store an API key (Settings > API keys) instead; it is read from stdin
-cadastre whoami
+cadastre whoami           # who the CLI acts as and its limits, or "Not signed in (anonymous: public data, ...)"
 cadastre logout           # revokes the sign-in and deletes it from this machine
 ```
 
@@ -145,26 +153,30 @@ the API.
 
 ## Connect an AI assistant (MCP)
 
-Cadastre runs a remote MCP server at `https://getcadastre.com/mcp`. The
-assistant signs in through your browser on first use (OAuth); no API key is
-written anywhere. Like the API, it needs an account with API access enabled
-(see [Exit codes](#exit-codes): `api_access_required`).
+Cadastre runs a remote MCP server at `https://getcadastre.com/mcp`. It works
+without signing in (the public datasets, 30 requests a minute). For higher
+limits, `--sign-in` uses the sign-in address,
+`https://getcadastre.com/mcp?auth=required`, where the assistant signs in
+through your browser on first use (OAuth; MCP clients start signing in only
+when the server asks). No API key is written anywhere.
 
 ```sh
-cadastre mcp                     # the server URL and the clients
-cadastre mcp add claude-code     # prints the command and the config file alternative
-cadastre mcp add cursor --write  # edits the config file for you
+cadastre mcp                               # the server URL and the clients
+cadastre mcp add claude-code               # prints the command and the config file alternative
+cadastre mcp add cursor --write            # edits the config file for you
+cadastre mcp add claude-code --sign-in     # the sign-in address, for higher limits
 ```
 
 | Client | Printed command | Config file (`--write` edits it) |
 | --- | --- | --- |
-| `claude-code` | `claude mcp add --transport http --scope user cadastre https://getcadastre.com/mcp`, then `/mcp` in Claude Code to sign in | `./.mcp.json` (this project): `{"mcpServers":{"cadastre":{"type":"http","url":"..."}}}` |
-| `codex` | `codex mcp add cadastre --url https://getcadastre.com/mcp`, then `codex mcp login cadastre` | `$CODEX_HOME/config.toml` (`~/.codex/config.toml`): `[mcp_servers.cadastre]` `url = "..."` |
+| `claude-code` | `claude mcp add --transport http --scope user cadastre https://getcadastre.com/mcp` (with `--sign-in`, the quoted sign-in address, then `/mcp` > Authenticate in Claude Code) | `./.mcp.json` (this project): `{"mcpServers":{"cadastre":{"type":"http","url":"..."}}}` |
+| `codex` | `codex mcp add cadastre --url https://getcadastre.com/mcp` (with `--sign-in`, the sign-in address, then `codex mcp login cadastre`) | `$CODEX_HOME/config.toml` (`~/.codex/config.toml`): `[mcp_servers.cadastre]` `url = "..."` |
 | `cursor` | (none) | `~/.cursor/mcp.json`: `{"mcpServers":{"cadastre":{"url":"..."}}}` |
 | `vscode` | `code --add-mcp '{"name":"cadastre","type":"http","url":"https://getcadastre.com/mcp"}'` (your user profile) | `./.mcp.json` (this workspace): the same file and entry as Claude Code's |
 
 `cadastre mcp add <client>` prints both: the command (where the client has
-one) and the config file alternative, then the sign-in step.
+one) and the config file alternative, then the next step (with `--sign-in`,
+how the client signs in).
 
 VS Code reads MCP servers from `.mcp.json` at the workspace root, with the
 servers in a top-level `mcpServers` object and a remote server spelled
@@ -224,10 +236,10 @@ server it signed in to.
 | 0 | Success |
 | 1 | An error (the API refused the request, not found, network failure) |
 | 2 | Usage: an unknown command or flag, a bad value |
-| 3 | Not signed in, or the sign-in no longer works: run `cadastre login` |
+| 3 | The sign-in or `CADASTRE_API_KEY` no longer works (HTTP 401; it is never silently dropped), or the command needs a sign-in: run `cadastre login` |
 | 4 | The account must accept Cadastre's current Terms: sign in at the site and accept them |
-| 5 | Rate limited: the message gives the `Retry-After` seconds |
-| 6 | The account does not have API access enabled (HTTP 403, `api_access_required`): ask support@getcadastre.com to enable it |
+| 5 | Rate limited: the message gives the `Retry-After` seconds (without a sign-in, it suggests `cadastre login`) |
+| 6 | The account does not have API access for data that needs it (HTTP 403, `api_access_required`; no data does today): ask support@getcadastre.com |
 
 With `--json`, errors are printed to stderr as `{"error": "<code>", "message": "..."}`,
 `error` being the API's own code (`not_found`, `invalid_request`, ...) when the
@@ -281,7 +293,7 @@ are about 1.2 to 1.7 MB.
 mapping and request bodies, PKCE (the RFC 7636 test vector), URL and form
 encoding, the authorization URL and redirect checks, decoding and rendering of
 every recorded API answer (attribution included), the API error to exit code
-mapping, credential encoding, and the MCP instructions and config merges
+mapping (anonymous requests included), `whoami` signed in and not, credential encoding, and the MCP instructions and config merges
 (including Claude Code and VS Code sharing one `.mcp.json`). They make no network calls.
 
 `scripts/e2e.sh` drives the built CLI against a **local** Cadastre server (it

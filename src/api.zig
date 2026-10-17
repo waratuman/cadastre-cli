@@ -1,6 +1,8 @@
 //! Calls to the public API (/api/v1) with the current credential: an API key
-//! from CADASTRE_API_KEY, else the saved sign-in. An OAuth access token close
-//! to expiry is refreshed first, and a 401 is retried once after a refresh.
+//! from CADASTRE_API_KEY, else the saved sign-in, else none: the API serves its
+//! public datasets without a credential (at lower, per-address limits), so the
+//! data commands work before `cadastre login`. An OAuth access token close to
+//! expiry is refreshed first, and a 401 is retried once after a refresh.
 //! Every failure the API can answer is turned into a message that says what
 //! to do (README § Errors and exit codes).
 const std = @import("std");
@@ -15,20 +17,25 @@ const jv = @import("json_value.zig");
 
 pub const api_path = "/api/v1";
 
-pub const Origin = enum { env, stored };
+pub const Origin = enum { env, stored, anonymous };
 
 pub const Credential = struct {
-    token: []const u8,
+    /// The bearer token; null when anonymous.
+    token: ?[]const u8,
     origin: Origin,
-    /// The saved credential (null for CADASTRE_API_KEY).
+    /// The saved credential (null for CADASTRE_API_KEY and anonymous).
     saved: ?store.Loaded = null,
 };
 
-/// The credential the next request uses, or an "run cadastre login" error.
+/// The anonymous allowance, as the API documents it (the server's
+/// RateLimit-Limit header says what it actually is).
+pub const anonymous_limit = "30 requests a minute";
+
+/// The credential the next request uses: anonymous when there is none.
 pub fn current(app: *App) App.Error!Credential {
     if (app.getenv("CADASTRE_API_KEY")) |key| return .{ .token = key, .origin = .env };
     const loaded = (store.load(app) catch |err| return mapStoreError(app, err)) orelse
-        return app.fail(.auth, "not signed in to {s}. Run `cadastre login` (or set CADASTRE_API_KEY)", .{app.base_url});
+        return .{ .token = null, .origin = .anonymous };
     const c = loaded.credential;
     if (c.isOauth()) {
         const token = c.access_token orelse return app.fail(.auth, "the saved sign-in is incomplete. Run `cadastre login`", .{});
@@ -123,6 +130,7 @@ pub fn failFor(app: *App, res: http.Response, origin: Origin, request_url: []con
     }
     switch (res.status) {
         401 => {
+            if (origin == .anonymous) return app.fail(.auth, "not signed in to {s}, and this needs a sign-in ({s}). Run `cadastre login` (or set CADASTRE_API_KEY)", .{ app.base_url, nonEmpty(message, "unauthorized") });
             if (origin == .env) return app.fail(.auth, "CADASTRE_API_KEY was refused: {s}. Check the key (Settings > API keys) or unset it to use `cadastre login`", .{nonEmpty(message, "not valid")});
             return app.fail(.auth, "your sign-in to {s} is no longer valid ({s}). Run `cadastre login`", .{ app.base_url, nonEmpty(message, "unauthorized") });
         },
@@ -139,8 +147,9 @@ pub fn failFor(app: *App, res: http.Response, origin: Origin, request_url: []con
             return app.fail(.failure, "forbidden: {s}", .{nonEmpty(message, "the server refused the request")});
         },
         429 => {
-            if (res.retry_after) |after| return app.fail(.rate_limited, "rate limited: {s} Retry after {s} seconds", .{ nonEmpty(message, "too many requests."), after });
-            return app.fail(.rate_limited, "rate limited: {s}", .{nonEmpty(message, "too many requests; try again later.")});
+            const tip: []const u8 = if (origin == .anonymous) " Not signed in: `cadastre login` gives higher limits." else "";
+            if (res.retry_after) |after| return app.fail(.rate_limited, "rate limited: {s} Retry after {s} seconds.{s}", .{ nonEmpty(message, "too many requests."), after, tip });
+            return app.fail(.rate_limited, "rate limited: {s}{s}", .{ nonEmpty(message, "too many requests; try again later."), tip });
         },
         404 => return app.fail(.failure, "not found: {s} (it does not exist, or is not served through the API)", .{request_url[app.base_url.len..]}),
         400, 415, 422 => return app.fail(.failure, "the API refused the request: {s}", .{nonEmpty(message, "bad request")}),
